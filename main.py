@@ -2,13 +2,11 @@ import json
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
-from normalizer import build_event_id, normalize_gowa_payload, safe_key
-from redis_stream import (
-    get_stream_name,
-    is_duplicate_event,
+from normalizer import normalize_gowa_payload, safe_key
+from redis_pubsub import (
+    get_channel_name,
     ping_redis,
     publish_event,
-    release_dedup_event,
 )
 from settings import get_settings
 from signature import verify_gowa_signature
@@ -26,7 +24,8 @@ async def health_check():
     return {
         "ok": True,
         "redis": redis_ok,
-        "stream_maxlen": settings.stream_maxlen,
+        "transport": "redis_pubsub",
+        "channel_prefix": settings.pubsub_channel_prefix,
     }
 
 
@@ -52,11 +51,11 @@ async def receive_gowa_webhook(
 
     try:
         parsed_body = json.loads(raw_body)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as exc:
         raise HTTPException(
             status_code=400,
             detail="Invalid JSON payload",
-        )
+        ) from exc
 
     try:
         data = normalize_gowa_payload(parsed_body)
@@ -72,42 +71,30 @@ async def receive_gowa_webhook(
     if allowed_devices and device_id not in allowed_devices:
         return {
             "ok": True,
-            "queued": False,
+            "published": False,
             "reason": "device_not_allowed",
-            "device_id": device_id,
-        }
-
-    event_id = build_event_id(data, raw_body)
-
-    duplicate = await is_duplicate_event(event_id)
-    if duplicate:
-        return {
-            "ok": True,
-            "queued": False,
-            "duplicate": True,
-            "event_id": event_id,
             "event": data["event"],
             "device_id": device_id,
         }
 
-    stream_name = get_stream_name(device_id)
+    channel_name = get_channel_name(device_id)
 
     try:
-        redis_stream_id = await publish_event(
-            stream_name=stream_name,
-            event_id=event_id,
+        subscribers = await publish_event(
+            channel_name=channel_name,
             data=data,
         )
-    except Exception:
-        await release_dedup_event(event_id)
-        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Failed to publish event to Redis Pub/Sub",
+        ) from exc
 
     return {
         "ok": True,
-        "queued": True,
-        "event_id": event_id,
-        "redis_stream_id": redis_stream_id,
+        "published": True,
         "event": data["event"],
         "device_id": device_id,
-        "stream": stream_name,
+        "channel": channel_name,
+        "subscribers": subscribers,
     }

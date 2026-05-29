@@ -15,12 +15,12 @@ class Settings(BaseSettings):
 
     gowa_webhook_secret: str = ""
 
-    stream_prefix: str = "wa:incoming"
-    stream_maxlen: int = 1000
+    # Redis Pub/Sub channel prefix.
+    # Final channel format: {pubsub_channel_prefix}:{device_id}
+    pubsub_channel_prefix: str = "wa:incoming"
 
-    dedup_prefix: str = "wa:dedup"
-    dedup_ttl_seconds: int = 86400
-
+    # Optional whitelist. Empty means all devices are accepted.
+    # Example: ALLOWED_DEVICES=device_1,device_2,6281234567890
     allowed_devices: str = ""
 
     @property
