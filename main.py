@@ -6,7 +6,6 @@ from normalizer import normalize_gowa_payload, safe_key, build_event_id
 from redis_pubsub import (
     get_channel_name,
     ping_redis,
-    publish_event,
     publish_event_once
 )
 from settings import get_settings
