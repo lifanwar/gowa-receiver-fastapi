@@ -14,7 +14,19 @@ from signature import verify_gowa_signature
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
+ALLOWED_ROUTES = {
+    ("GET", "/health"),
+    ("POST", "/webhooks/gowa"),
+}
+
+app = FastAPI(
+    title=settings.app_name,
+
+    # Disable public documentation endpoints
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
+)
 
 
 @app.get("/health")
