@@ -1,6 +1,6 @@
 import json
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request, Response
 
 from normalizer import normalize_gowa_payload, safe_key, build_event_id
 from redis_pubsub import (
@@ -14,11 +14,6 @@ from signature import verify_gowa_signature
 
 settings = get_settings()
 
-ALLOWED_ROUTES = {
-    ("GET", "/health"),
-    ("POST", "/webhooks/gowa"),
-}
-
 app = FastAPI(
     title=settings.app_name,
 
@@ -28,6 +23,19 @@ app = FastAPI(
     openapi_url=None,
 )
 
+ALLOWED_ROUTES = {
+    ("GET", "/health"),
+    ("POST", "/webhooks/gowa"),
+}
+
+@app.middleware("http")
+async def drop_unknown_routes(request: Request, call_next):
+    route_key = (request.method.upper(), request.url.path)
+
+    if route_key not in ALLOWED_ROUTES:
+        return Response(status_code=404)
+
+    return await call_next(request)
 
 @app.get("/health")
 async def health_check():
