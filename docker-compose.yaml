@@ -1,0 +1,13 @@
+services:
+  webhook-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webhook-api
+    expose:
+      - "8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    restart: unless-stopped

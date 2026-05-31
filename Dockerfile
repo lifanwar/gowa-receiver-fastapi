@@ -3,14 +3,14 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app/webhook-api
+WORKDIR /app
 
-COPY webhook-api/requirements.txt /app/webhook-api/requirements.txt
+COPY requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r /app/webhook-api/requirements.txt
+    && pip install --no-cache-dir -r /app/requirements.txt
 
-COPY webhook-api /app/webhook-api
+COPY . /app
 
 EXPOSE 8000
 
