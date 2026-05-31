@@ -2,11 +2,12 @@ import json
 
 from fastapi import FastAPI, Header, HTTPException, Request
 
-from normalizer import normalize_gowa_payload, safe_key
+from normalizer import normalize_gowa_payload, safe_key, build_event_id
 from redis_pubsub import (
     get_channel_name,
     ping_redis,
     publish_event,
+    publish_event_once
 )
 from settings import get_settings
 from signature import verify_gowa_signature
@@ -77,12 +78,14 @@ async def receive_gowa_webhook(
             "device_id": device_id,
         }
 
+    event_id = build_event_id(data, raw_body)
     channel_name = get_channel_name(device_id)
 
     try:
-        subscribers = await publish_event(
+        result = await publish_event_once(
             channel_name=channel_name,
             data=data,
+            event_id=event_id,
         )
     except Exception as exc:
         raise HTTPException(
@@ -92,9 +95,8 @@ async def receive_gowa_webhook(
 
     return {
         "ok": True,
-        "published": True,
         "event": data["event"],
         "device_id": device_id,
         "channel": channel_name,
-        "subscribers": subscribers,
+        **result,
     }

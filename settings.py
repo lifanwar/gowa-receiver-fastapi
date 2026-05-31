@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     # Final channel format: {pubsub_channel_prefix}:{device_id}
     pubsub_channel_prefix: str = "wa:incoming"
 
+    # Dedup
+    dedup_prefix: str = "dedup:gowa"
+    dedup_ttl_seconds: int = 600
+
     # Optional whitelist. Empty means all devices are accepted.
     # Example: ALLOWED_DEVICES=device_1,device_2,6281234567890
     allowed_devices: str = ""
