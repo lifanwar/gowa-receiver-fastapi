@@ -45,7 +45,6 @@ async def health_check():
         "ok": True,
         "redis": redis_ok,
         "transport": "redis_pubsub",
-        "channel_prefix": settings.pubsub_channel_prefix,
     }
 
 
